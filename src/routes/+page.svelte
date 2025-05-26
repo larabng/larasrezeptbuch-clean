@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-	let recipes: any[] = [];
-	let selectedRecipe: any = null;
+	interface Recipe {
+		title: string;
+		description: string;
+		ingredients: string[];
+		instructions: string;
+		category: string;
+	}
+
+	let recipes: Recipe[] = [];
+	let selectedRecipe: Recipe | null = null;
 	let showForm = false;
 
 	let newRecipe = {
@@ -14,31 +22,44 @@
 	};
 
 	onMount(async () => {
-		const res = await fetch("/api/recipes");
-		recipes = await res.json();
+		try {
+			const res = await fetch("/api/recipes");
+			if (!res.ok) throw new Error("Fehler beim Laden der Rezepte");
+			recipes = await res.json();
+		} catch (error) {
+			console.error(error);
+		}
 	});
 
 	async function saveRecipe() {
-		await fetch("/api/recipes", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				...newRecipe,
-				ingredients: newRecipe.ingredients
-					.split(",")
-					.map((i) => i.trim()),
-			}),
-		});
-		const res = await fetch("/api/recipes");
-		recipes = await res.json();
-		showForm = false;
+		try {
+			const res = await fetch("/api/recipes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					...newRecipe,
+					ingredients: newRecipe.ingredients
+						.split(",")
+						.map((i) => i.trim()),
+				}),
+			});
+			if (!res.ok) throw new Error("Fehler beim Speichern des Rezepts");
+
+			const updated = await fetch("/api/recipes");
+			if (!updated.ok)
+				throw new Error("Fehler beim Aktualisieren der Rezeptliste");
+			recipes = await updated.json();
+			showForm = false;
+		} catch (error) {
+			console.error(error);
+		}
 	}
 
 	function getImageFor(title: string): string {
-		if (title.includes("Carbonara")) return "/images/carbonara.png";
-		if (title.includes("Gemüsesuppe")) return "/images/gemuesesuppe.png";
-		if (title.includes("Schokoladenkuchen"))
-			return "/images/schokokuchen.png";
+		const t = title.toLowerCase();
+		if (t.includes("carbonara")) return "/images/carbonara.png";
+		if (t.includes("gemüsesuppe")) return "/images/gemuesesuppe.png";
+		if (t.includes("schokoladenkuchen")) return "/images/schokokuchen.png";
 		return "/images/default.jpg";
 	}
 </script>
