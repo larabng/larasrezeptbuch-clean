@@ -9,7 +9,6 @@ export async function getAllRecipes() {
   return db.collection('recipes').find().toArray();
 }
 
-// Diese Funktion fehlt offenbar oder ist nicht exportiert:
 export async function insertRecipe(recipe: Record<string, any>) {
   const db = await dbPromise;
   return db.collection('recipes').insertOne(recipe);
